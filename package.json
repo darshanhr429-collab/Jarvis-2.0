@@ -4,8 +4,7 @@
   "description": "J.A.R.V.I.S. — Kali Linux Powered AI Voice Assistant & Operations Terminal",
   "main": "index.html",
   "scripts": {
-    "start": "python jarvis_desktop.py",
-    "build": "echo 'Build successful for Vercel'"
+    "start": "python jarvis_desktop.py"
   },
   "keywords": [
     "jarvis",
