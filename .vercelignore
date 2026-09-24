@@ -1,0 +1,9 @@
+# Python desktop files & dependencies (not needed on Vercel)
+requirements-desktop.txt
+requirements.txt
+ai_brain.py
+voice_engine.py
+jarvis_desktop.py
+*.bat
+*.cmd
+*.ps1

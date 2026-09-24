@@ -23,7 +23,7 @@
 ### 1. Requirements
 Ensure Python 3.9+ is installed. Install the Python dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-desktop.txt
 ```
 
 ### 2. Configure API Key
