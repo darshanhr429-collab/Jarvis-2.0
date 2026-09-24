@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TerraPrime - Hyper-realistic interactive 3D Earth visualization platform with real-time orbital telemetry and planetary layer analysis.">
+    <title>TerraPrime — Planetary Observation & Orbital Intelligence</title>
+    
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-void: #020408;
+            --cyan-glow: #00f2fe;
+            --cyan-subtle: rgba(0, 242, 254, 0.15);
+            --cyan-border: rgba(0, 242, 254, 0.35);
+            --white-border: rgba(255, 255, 255, 0.15);
+            --glass-bg: rgba(6, 12, 24, 0.65);
+            --glass-card: rgba(10, 18, 36, 0.72);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --gold-sun: #fbbf24;
+            --red-alert: #f43f5e;
+            --green-active: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-void);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+        }
+
+        /* 3D WebGL Canvas Layer */
+        #viewport-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: block;
+            cursor: grab;
+        }
+
+        #viewport-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* ══════════════ HUD OVERLAY FRAMEWORK ══════════════ */
+        .hud-system {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.25rem 1.75rem;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* Glassmorphic Base Class */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--white-border);
+            border-top: 1px solid var(--cyan-border);
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.8), 0 0 25px var(--cyan-subtle);
+            border-radius: 14px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ══════════════ 1. HEADER NAVBAR ══════════════ */
+        .header-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            width: 100%;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-emblem {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .emblem-core {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, var(--cyan-glow), #0284c7);
+            box-shadow: 0 0 16px var(--cyan-glow);
+        }
+
+        .emblem-orbit {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 242, 254, 0.5);
+            animation: spin-orbit 14s linear infinite;
+        }
+
+        @keyframes spin-orbit {
+            to { transform: rotate(360deg); }
+        }
+
+        .brand-text h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 40%, var(--cyan-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        /* Live Lat/Long Coordinates & Telemetry Center */
+        .hud-coordinates {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: rgba(2, 6, 16, 0.6);
+            padding: 0.45rem 1.25rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .coord-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .coord-label {
+            color: var(--text-muted);
+        }
+
+        .coord-val {
+            color: var(--cyan-glow);
+            font-weight: 600;
+        }
+
+        .hud-pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green-active);
+            box-shadow: 0 0 10px var(--green-active);
+            animation: pulse-dot 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--white-border);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: var(--cyan-subtle);
+            border-color: var(--cyan-glow);
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* ══════════════ 2. CENTRAL HERO RETICLE ══════════════ */
+        .hero-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 480px;
+            height: 480px;
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 242, 254, 0.12);
+            pointer-events: none;
+            z-index: 2;
+            animation: rotate-crosshair 60s linear infinite;
+        }
+
+        @keyframes rotate-crosshair {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* ══════════════ 3. LEFT FLOATING PANEL: METRICS HUB ══════════════ */
+        .metrics-panel {
+            position: absolute;
+            top: 5.8rem;
+            left: 1.75rem;
+            width: 320px;
+            padding: 1.4rem;
+            z-index: 10;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .panel-title-icon {
+            width: 6px;
+            height: 16px;
+            background: var(--cyan-glow);
+            border-radius: 2px;
+            box-shadow: 0 0 8px var(--cyan-glow);
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .collapse-btn:hover {
+            color: var(--cyan-glow);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .metrics-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .metric-card {
+            background: rgba(2, 6, 16, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 9px;
+            padding: 0.85rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.35rem;
+        }
+
+        .metric-name {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .metric-value small {
+            font-size: 0.7rem;
+            color: var(--cyan-glow);
+            font-weight: 500;
+            margin-left: 0.2rem;
+        }
+
+        /* Sparkline Vector Sweep */
+        .sparkline-svg {
+            width: 100%;
+            height: 32px;
+            stroke: var(--cyan-glow);
+            stroke-width: 1.8;
+            fill: url(#cyan-grad);
+        }
+
+        .vector-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+        }
+
+        .vector-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .vector-sub strong {
+            color: var(--text-primary);
+            display: block;
+            font-size: 0.82rem;
+            margin-top: 0.15rem;
+        }
+
+        /* ══════════════ 4. RIGHT FLOATING PANEL: LAYER CONTROLS ══════════════ */
+        .layers-panel {
+            position: absolute;
+            top: 5.8rem;
+            right: 1.75rem;
+            width: 310px;
+            padding: 1.4rem;
+            z-index: 10;
+        }
+
+        .layer-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .layer-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(2, 6, 16, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9px;
+            padding: 0.7rem 1rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .layer-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .layer-icon {
+            font-size: 1rem;
+        }
+
+        .layer-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid var(--text-muted);
+            transition: all 0.25s ease;
+        }
+
+        .layer-btn:hover {
+            border-color: rgba(0, 242, 254, 0.4);
+            background: rgba(0, 242, 254, 0.05);
+        }
+
+        .layer-btn.active {
+            border-color: var(--cyan-glow);
+            background: rgba(0, 242, 254, 0.12);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+        }
+
+        .layer-btn.active .layer-indicator {
+            background: var(--cyan-glow);
+            border-color: var(--cyan-glow);
+            box-shadow: 0 0 8px var(--cyan-glow);
+        }
+
+        .slider-control-group {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .slider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        .slider-header span:last-child {
+            color: var(--cyan-glow);
+            font-weight: 600;
+        }
+
+        .hud-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .hud-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--cyan-glow);
+            box-shadow: 0 0 8px var(--cyan-glow);
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        .hud-range::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        /* ══════════════ 5. BOTTOM BAR: 24-HOUR TIME SCRUBBER ══════════════ */
+        .timeline-dock {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0.9rem 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .timeline-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timeline-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+
+        .time-badge {
+            background: rgba(0, 242, 254, 0.15);
+            border: 1px solid var(--cyan-border);
+            color: var(--cyan-glow);
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+
+        .timeline-phase {
+            color: var(--gold-sun);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .play-btn {
+            background: var(--cyan-glow);
+            color: #020408;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 14px var(--cyan-glow);
+            transition: all 0.2s ease;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 22px var(--cyan-glow);
+        }
+
+        .speed-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .speed-badge:hover {
+            border-color: var(--cyan-glow);
+            color: var(--text-primary);
+        }
+
+        .scrubber-track-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .scrubber-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #1e1b4b 0%, #0369a1 25%, #f59e0b 50%, #0369a1 75%, #1e1b4b 100%);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .scrubber-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid var(--cyan-glow);
+            box-shadow: 0 0 12px var(--cyan-glow);
+            cursor: ew-resize;
+            transition: transform 0.1s;
+        }
+
+        .scrubber-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        .timeline-markers {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* ══════════════ 6. GEOGRAPHIC NODE MODAL ══════════════ */
+        .node-popup {
+            position: absolute;
+            background: rgba(10, 18, 36, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--cyan-border);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px var(--cyan-subtle);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            width: 280px;
+            pointer-events: auto;
+            transform: translate(-50%, -120%);
+            display: none;
+            z-index: 50;
+            transition: opacity 0.2s ease;
+        }
+
+        .node-popup.active {
+            display: block;
+        }
+
+        .node-popup-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .node-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .node-close-btn:hover {
+            color: var(--cyan-glow);
+        }
+
+        .node-popup-coord {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--cyan-glow);
+            margin-bottom: 0.5rem;
+        }
+
+        .node-popup-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .metrics-panel { display: none; }
+            .layers-panel { width: 260px; right: 1rem; }
+            .hud-coordinates { display: none; }
+        }
+
+        @media (max-width: 680px) {
+            .layers-panel { display: none; }
+            .timeline-dock { padding: 0.75rem 1rem; }
+            .header-navbar { padding: 0.6rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D WebGL Canvas Layer -->
+    <canvas id="viewport-canvas"></canvas>
+
+    <!-- Center Aim Reticle -->
+    <div class="hero-crosshair"></div>
+
+    <!-- ══════════════ HUD SYSTEM ══════════════ -->
+    <div class="hud-system">
+
+        <!-- 1. Header Navbar -->
+        <header class="glass-panel header-navbar interactive">
+            <div class="header-brand">
+                <div class="brand-emblem">
+                    <div class="emblem-core"></div>
+                    <div class="emblem-orbit"></div>
+                </div>
+                <div class="brand-text">
+                    <h1>TerraPrime</h1>
+                    <span>Planetary Observation System</span>
+                </div>
+            </div>
+
+            <!-- Coordinate Telemetry HUD -->
+            <div class="hud-coordinates">
+                <div class="hud-pulse-dot"></div>
+                <div class="coord-item">
+                    <span class="coord-label">LAT:</span>
+                    <span class="coord-val" id="hud-lat">35.6762° N</span>
+                </div>
+                <div class="coord-item">
+                    <span class="coord-label">LONG:</span>
+                    <span class="coord-val" id="hud-long">139.6503° E</span>
+                </div>
+                <div class="coord-item">
+                    <span class="coord-label">ALT:</span>
+                    <span class="coord-val" id="hud-alt">6,371 KM</span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="action-btn" id="btn-recenter" title="Recenter View">
+                    <span>⊕ Recenter</span>
+                </button>
+                <button class="action-btn" id="btn-fullscreen" title="Toggle Fullscreen">
+                    <span>⛶ Exp</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 2. Left Floating Panel: Metrics Hub -->
+        <aside class="glass-panel metrics-panel interactive" id="metrics-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="panel-title-icon"></div>
+                    <span>Orbital Metrics</span>
+                </div>
+                <button class="collapse-btn" id="metrics-collapse" title="Collapse Panel">▲</button>
+            </div>
+
+            <div class="metrics-body" id="metrics-body">
+                <!-- Orbital Velocity -->
+                <div class="metric-card">
+                    <div class="metric-row">
+                        <span class="metric-name">Orbital Velocity</span>
+                        <div class="metric-value" id="disp-velocity">27,612<small>KM/H</small></div>
+                    </div>
+                    <!-- Live SVG Wave -->
+                    <svg class="sparkline-svg" viewBox="0 0 100 25" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="cyan-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="rgba(0, 242, 254, 0.35)"/>
+                                <stop offset="100%" stop-color="rgba(0, 242, 254, 0.0)"/>
+                            </linearGradient>
+                        </defs>
+                        <path id="sparkline-path" d="M0,15 Q25,5 50,15 T100,10 L100,25 L0,25 Z"/>
+                    </svg>
+                </div>
+
+                <!-- Atmospheric Density -->
+                <div class="metric-card">
+                    <div class="metric-row">
+                        <span class="metric-name">Atmospheric Density</span>
+                        <div class="metric-value">1.225<small>KG/M³</small></div>
+                    </div>
+                    <div class="vector-grid">
+                        <div class="vector-sub">
+                            TROPOSPHERE
+                            <strong style="color: var(--cyan-glow);">10.4 KM</strong>
+                        </div>
+                        <div class="vector-sub">
+                            STRATOPAUSE
+                            <strong style="color: #38bdf8;">50.2 KM</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vector Trajectories -->
+                <div class="metric-card">
+                    <div class="metric-row">
+                        <span class="metric-name">Orbital Trajectory</span>
+                        <div class="metric-value">LEO<small>SYNC</small></div>
+                    </div>
+                    <div class="vector-grid">
+                        <div class="vector-sub">
+                            APOGEE
+                            <strong>418 KM</strong>
+                        </div>
+                        <div class="vector-sub">
+                            PERIGEE
+                            <strong>408 KM</strong>
+                        </div>
+                        <div class="vector-sub">
+                            INCLINATION
+                            <strong>51.64°</strong>
+                        </div>
+                        <div class="vector-sub">
+                            SOLAR FLUX
+                            <strong style="color: var(--gold-sun);">1,366 W</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 3. Right Floating Panel: Layer Controls -->
+        <aside class="glass-panel layers-panel interactive" id="layers-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="panel-title-icon"></div>
+                    <span>Surface Layers</span>
+                </div>
+            </div>
+
+            <div class="layer-options">
+                <button class="layer-btn active" data-layer="satellite" id="layer-sat">
+                    <div class="layer-btn-left">
+                        <span class="layer-icon">🌍</span>
+                        <span>Satellite Natural PBR</span>
+                    </div>
+                    <div class="layer-indicator"></div>
+                </button>
+
+                <button class="layer-btn" data-layer="thermal" id="layer-thermal">
+                    <div class="layer-btn-left">
+                        <span class="layer-icon">🌡️</span>
+                        <span>Thermal Heatmap</span>
+                    </div>
+                    <div class="layer-indicator"></div>
+                </button>
+
+                <button class="layer-btn" data-layer="topo" id="layer-topo">
+                    <div class="layer-btn-left">
+                        <span class="layer-icon">⛰️</span>
+                        <span>Topological Elevation</span>
+                    </div>
+                    <div class="layer-indicator"></div>
+                </button>
+
+                <button class="layer-btn" data-layer="night" id="layer-night">
+                    <div class="layer-btn-left">
+                        <span class="layer-icon">💡</span>
+                        <span>Night City Lights</span>
+                    </div>
+                    <div class="layer-indicator"></div>
+                </button>
+            </div>
+
+            <div class="slider-control-group">
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>Atmosphere Glow</span>
+                        <span id="glow-val">80%</span>
+                    </div>
+                    <input type="range" class="hud-range" id="glow-slider" min="10" max="100" value="80">
+                </div>
+
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>Cloud Layer Opacity</span>
+                        <span id="clouds-val">85%</span>
+                    </div>
+                    <input type="range" class="hud-range" id="clouds-slider" min="0" max="100" value="85">
+                </div>
+            </div>
+        </aside>
+
+        <!-- 4. Geographic Node Popup -->
+        <div class="node-popup" id="node-popup">
+            <div class="node-popup-title">
+                <span id="node-title">Tokyo Node</span>
+                <button class="node-close-btn" id="node-close">&times;</button>
+            </div>
+            <div class="node-popup-coord" id="node-coord">35.6762° N, 139.6503° E</div>
+            <div class="node-popup-desc" id="node-desc">
+                High-density metropolitan cluster. Real-time seismic monitoring station and sub-orbital communications gateway.
+            </div>
+        </div>
+
+        <!-- 5. Bottom Bar: 24-Hour Timeline Scrubber -->
+        <footer class="glass-panel timeline-dock interactive">
+            <div class="timeline-top-row">
+                <div class="timeline-status">
+                    <span class="time-badge" id="hud-time">14:00 UTC</span>
+                    <span class="timeline-phase" id="hud-phase">☀️ SOLAR NOON</span>
+                    <span style="color: var(--text-muted);">|</span>
+                    <span style="color: var(--text-secondary);">ROTATION SIMULATION</span>
+                </div>
+
+                <div class="timeline-controls">
+                    <button class="speed-badge active" id="btn-live-sync" title="Sync Live Earth Lighting with real-world UTC" style="background: rgba(0, 242, 254, 0.2); border-color: var(--cyan-glow); color: var(--cyan-glow); font-weight: 700;">⚡ LIVE LIGHTING</button>
+                    <button class="play-btn" id="btn-play-time" title="Play/Pause Diurnal Cycle">▶</button>
+                    <span class="speed-badge" id="btn-speed-time" title="Simulation Speed">1x SPEED</span>
+                </div>
+            </div>
+
+            <div class="scrubber-track-wrap">
+                <input type="range" class="scrubber-slider" id="time-scrubber" min="0" max="1440" value="840" step="1">
+            </div>
+
+            <div class="timeline-markers">
+                <span>00:00 (Midnight)</span>
+                <span>06:00 (Sunrise)</span>
+                <span>12:00 (Solar Noon)</span>
+                <span>18:00 (Sunset)</span>
+                <span>24:00 (Cycle End)</span>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ══════════════ THREE.JS CORE ENGINE ══════════════ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // ══════════════════════════════════════════════════════════
+        // TERRA-PRIME: 3D PHOTOREALISTIC WEBGL EARTH VISUALIZATION
+        // ══════════════════════════════════════════════════════════
+
+        const canvas = document.getElementById('viewport-canvas');
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+
+        const scene = new THREE.Scene();
+
+        // Perspective Camera
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 32);
+
+        // OrbitControls
+        const controls = new THREE.OrbitControls(camera, canvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 0.6;
+        controls.zoomSpeed = 0.8;
+        controls.minDistance = 14;
+        controls.maxDistance = 80;
+
+        // ══════════════════════════════════════════════════════════
+        // PROCEDURAL ULTRA-DETAILED 8K-STYLE TEXTURE GENERATORS
+        // (Ensures zero missing external assets, zero CORS breaks)
+        // ══════════════════════════════════════════════════════════
+
+        function createPhotorealisticEarthTexture(layerType = 'satellite') {
+            const width = 2048;
+            const height = 1024;
+            const c = document.createElement('canvas');
+            c.width = width;
+            c.height = height;
+            const ctx = c.getContext('2d');
+
+            if (layerType === 'satellite') {
+                // Natural PBR ocean with bathymetric shelf gradients
+                const oceanGrad = ctx.createLinearGradient(0, 0, 0, height);
+                oceanGrad.addColorStop(0, '#061a33');
+                oceanGrad.addColorStop(0.2, '#0c2d54');
+                oceanGrad.addColorStop(0.5, '#12487d');
+                oceanGrad.addColorStop(0.8, '#0c2d54');
+                oceanGrad.addColorStop(1, '#061a33');
+                ctx.fillStyle = oceanGrad;
+                ctx.fillRect(0, 0, width, height);
+
+                // Ocean floor depth currents & phytoplankton swirls
+                for (let i = 0; i < 400; i++) {
+                    ctx.fillStyle = `rgba(56, 189, 248, ${Math.random() * 0.05})`;
+                    ctx.fillRect(Math.random() * width, Math.random() * height, Math.random() * 80, Math.random() * 10);
+                }
+
+                // Continents base (Vegetation + Arid blend)
+                drawContinents(ctx, width, height, {
+                    naColor: '#2d5a27',
+                    saColor: '#1e4620',
+                    eurasiaColor: '#386641',
+                    saharaColor: '#c29d66',
+                    ausColor: '#b06d3b'
+                });
+
+            } else if (layerType === 'thermal') {
+                // Infra-Red Heatmap
+                const thermalGrad = ctx.createLinearGradient(0, 0, 0, height);
+                thermalGrad.addColorStop(0, '#3b82f6'); // Polar cold
+                thermalGrad.addColorStop(0.2, '#06b6d4');
+                thermalGrad.addColorStop(0.5, '#ef4444'); // Equatorial heat
+                thermalGrad.addColorStop(0.8, '#06b6d4');
+                thermalGrad.addColorStop(1, '#3b82f6');
+                ctx.fillStyle = thermalGrad;
+                ctx.fillRect(0, 0, width, height);
+
+                drawContinents(ctx, width, height, {
+                    naColor: '#f97316',
+                    saColor: '#dc2626',
+                    eurasiaColor: '#ea580c',
+                    saharaColor: '#b91c1c',
+                    ausColor: '#e11d48'
+                });
+
+            } else if (layerType === 'topo') {
+                // Topological Elevation
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, width, height);
+
+                drawContinents(ctx, width, height, {
+                    naColor: '#14b8a6',
+                    saColor: '#059669',
+                    eurasiaColor: '#10b981',
+                    saharaColor: '#84cc16',
+                    ausColor: '#065f46'
+                });
+
+            } else if (layerType === 'night') {
+                // Night city constellations (pure emissive)
+                ctx.fillStyle = '#01040f';
+                ctx.fillRect(0, 0, width, height);
+
+                // Populate city lights
+                for (let i = 0; i < 3500; i++) {
+                    const x = Math.random() * width;
+                    const y = Math.random() * (height * 0.7) + height * 0.15;
+                    const r = Math.random() * 2.2 + 0.4;
+                    ctx.fillStyle = Math.random() > 0.3 ? 'rgba(255, 214, 102, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        // Specular Map (Water = White, Continents = Black)
+        function createSpecularTexture() {
+            const w = 2048;
+            const h = 1024;
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const ctx = c.getContext('2d');
+
+            ctx.fillStyle = '#ffffff'; // Ocean reflects sunlight
+            ctx.fillRect(0, 0, w, h);
+
+            drawContinents(ctx, w, h, {
+                naColor: '#000000',
+                saColor: '#000000',
+                eurasiaColor: '#000000',
+                saharaColor: '#000000',
+                ausColor: '#000000'
+            });
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        // Procedural Milky Way Nebula Skydome Background Texture
+        function createMilkyWayTexture() {
+            const w = 2048;
+            const h = 1024;
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const ctx = c.getContext('2d');
+
+            // Deep cosmic void
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+            bgGrad.addColorStop(0, '#010207');
+            bgGrad.addColorStop(0.5, '#040816');
+            bgGrad.addColorStop(1, '#010207');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Tilted Galactic Dust Plane
+            ctx.save();
+            ctx.translate(w / 2, h / 2);
+            ctx.rotate(-26 * Math.PI / 180);
+
+            // Galactic core glow
+            const coreGrad = ctx.createRadialGradient(0, 0, 15, 0, 0, 420);
+            coreGrad.addColorStop(0, 'rgba(255, 240, 220, 0.55)');
+            coreGrad.addColorStop(0.2, 'rgba(168, 85, 247, 0.32)');
+            coreGrad.addColorStop(0.5, 'rgba(56, 189, 248, 0.22)');
+            coreGrad.addColorStop(0.8, 'rgba(30, 27, 75, 0.08)');
+            coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = coreGrad;
+            ctx.scale(2.4, 0.65);
+            ctx.beginPath();
+            ctx.arc(0, 0, 420, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Cosmic Gas Clouds & Nebular Ribbons
+            for (let i = 0; i < 700; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * h;
+                const rad = Math.random() * 70 + 20;
+                const alpha = Math.random() * 0.04;
+                ctx.fillStyle = Math.random() > 0.5 ? `rgba(56, 189, 248, ${alpha})` : `rgba(168, 85, 247, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(x, y, rad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        // Procedural Landmass Synthesis Helper
+        function drawContinents(ctx, w, h, colors) {
+            function drawLand(cx, cy, r, pts, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                for (let i = 0; i < pts; i++) {
+                    const angle = (i / pts) * Math.PI * 2;
+                    const dist = r * (0.68 + Math.sin(angle * 3.8) * 0.22 + Math.cos(angle * 2.2) * 0.16);
+                    const px = cx + Math.cos(angle) * dist;
+                    const py = cy + Math.sin(angle) * dist * 0.72;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // North America
+            drawLand(w * 0.22, h * 0.32, 210, 18, colors.naColor);
+            // South America
+            drawLand(w * 0.31, h * 0.68, 175, 15, colors.saColor);
+            // Eurasia
+            drawLand(w * 0.63, h * 0.30, 280, 22, colors.eurasiaColor);
+            // Africa & Sahara
+            drawLand(w * 0.52, h * 0.44, 120, 12, colors.saharaColor);
+            drawLand(w * 0.53, h * 0.62, 140, 14, colors.eurasiaColor);
+            // Australia
+            drawLand(w * 0.83, h * 0.71, 115, 12, colors.ausColor);
+            // Polar Ice Caps
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, w, h * 0.08);
+            ctx.fillRect(0, h * 0.92, w, h * 0.08);
+        }
+
+        function createCloudsTexture() {
+            const w = 2048;
+            const h = 1024;
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+            for (let i = 0; i < 450; i++) {
+                const x = Math.random() * w;
+                const y = Math.random() * (h * 0.8) + h * 0.1;
+                const rx = Math.random() * 80 + 20;
+                const ry = Math.random() * 24 + 8;
+                ctx.beginPath();
+                ctx.ellipse(x, y, rx, ry, Math.random() * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(c);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // DEEP SPACE COSMIC ENVIRONMENT & RADIANT SUN
+        // ══════════════════════════════════════════════════════════
+
+        // 1. Milky Way Panoramic Skydome (Radius 750)
+        const milkyWayGeo = new THREE.SphereGeometry(750, 48, 48);
+        const milkyWayMat = new THREE.MeshBasicMaterial({
+            map: createMilkyWayTexture(),
+            side: THREE.BackSide,
+            depthWrite: false
+        });
+        const milkyWayMesh = new THREE.Mesh(milkyWayGeo, milkyWayMat);
+        scene.add(milkyWayMesh);
+
+        // 2. Multi-tier 3D Starfield (6,000 Depth-tested stars)
+        const starCount = 6000;
+        const starGeo = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 3);
+        const starColors = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount * 3; i += 3) {
+            starPositions[i] = (Math.random() - 0.5) * 1100;
+            starPositions[i + 1] = (Math.random() - 0.5) * 1100;
+            starPositions[i + 2] = (Math.random() - 0.5) * 1100;
+
+            const r = Math.random();
+            if (r > 0.82) {
+                starColors[i] = 0.0; starColors[i+1] = 0.95; starColors[i+2] = 1.0; // Cyan
+            } else if (r > 0.65) {
+                starColors[i] = 1.0; starColors[i+1] = 0.85; starColors[i+2] = 0.5; // Gold
+            } else {
+                starColors[i] = 1.0; starColors[i+1] = 1.0; starColors[i+2] = 1.0; // White
+            }
+        }
+
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+        const starMat = new THREE.PointsMaterial({
+            size: 1.25,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.88
+        });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+
+        // 3. Radiant Physical Sun in Deep Space
+        const sunGroup = new THREE.Group();
+        scene.add(sunGroup);
+
+        const sunCore = new THREE.Mesh(
+            new THREE.SphereGeometry(5.0, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        sunGroup.add(sunCore);
+
+        const sunCorona = new THREE.Mesh(
+            new THREE.SphereGeometry(8.5, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0xffb703,
+                transparent: true,
+                opacity: 0.4,
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide
+            })
+        );
+        sunGroup.add(sunCorona);
+
+        const sunHalo = new THREE.Mesh(
+            new THREE.RingGeometry(6.0, 22.0, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0xffd166,
+                transparent: true,
+                opacity: 0.25,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide
+            })
+        );
+        sunGroup.add(sunHalo);
+
+        // Directional Sun Light
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 2.8);
+        dirLight.position.set(50, 0, 30);
+        scene.add(dirLight);
+
+        const ambientLight = new THREE.AmbientLight(0x0a1428, 0.25);
+        scene.add(ambientLight);
+
+        // ══════════════════════════════════════════════════════════
+        // EARTH & ATMOSPHERE COMPOSITION (LIVE SHADER)
+        // ══════════════════════════════════════════════════════════
+
+        const earthRadius = 10;
+        const earthGroup = new THREE.Group();
+        earthGroup.rotation.z = 23.44 * (Math.PI / 180);
+        scene.add(earthGroup);
+
+        // Pre-cached textures
+        const earthTextures = {
+            satellite: createPhotorealisticEarthTexture('satellite'),
+            thermal: createPhotorealisticEarthTexture('thermal'),
+            topo: createPhotorealisticEarthTexture('topo'),
+            night: createPhotorealisticEarthTexture('night')
+        };
+        const specularMap = createSpecularTexture();
+
+        // Photorealistic Day/Night/Specular GLSL Shader Material
+        const earthVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPos.xyz;
+                gl_Position = projectionMatrix * viewMatrix * worldPos;
+            }
+        `;
+
+        const earthFragmentShader = `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            uniform sampler2D uDayMap;
+            uniform sampler2D uNightMap;
+            uniform sampler2D uSpecularMap;
+            uniform vec3 uSunPosition;
+            uniform vec3 uCameraPos;
+            uniform float uNightLightsIntensity;
+
+            void main() {
+                vec3 normal = normalize(vNormal);
+                vec3 sunDir = normalize(uSunPosition);
+                float sunDot = dot(normal, sunDir);
+
+                // Smooth day/night transition with atmospheric softening
+                float dayFactor = smoothstep(-0.10, 0.18, sunDot);
+
+                vec4 dayColor = texture2D(uDayMap, vUv);
+                vec4 nightColor = texture2D(uNightMap, vUv);
+                float specMask = texture2D(uSpecularMap, vUv).r;
+
+                // Day side lighting
+                float diffuse = max(sunDot, 0.0);
+                vec3 dayLit = dayColor.rgb * (0.12 + 0.88 * diffuse);
+
+                // Night side city lights (emissive)
+                float nightFactor = 1.0 - smoothstep(-0.15, 0.08, sunDot);
+                vec3 nightLit = nightColor.rgb * (nightFactor * uNightLightsIntensity * 1.6);
+
+                // Ocean specular sun reflection
+                vec3 viewDir = normalize(uCameraPos - vWorldPosition);
+                vec3 halfVector = normalize(sunDir + viewDir);
+                float specAngle = max(dot(normal, halfVector), 0.0);
+                float specular = pow(specAngle, 45.0) * specMask * dayFactor * 2.2;
+                vec3 specColor = vec3(1.0, 0.96, 0.85) * specular;
+
+                // Golden Rayleigh scattering along terminator rim
+                float terminatorDist = 1.0 - clamp(abs(sunDot) / 0.14, 0.0, 1.0);
+                vec3 sunsetGlow = vec3(1.0, 0.42, 0.12) * (terminatorDist * 0.45);
+
+                vec3 finalColor = (dayLit * dayFactor) + nightLit + specColor + sunsetGlow;
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        const earthMat = new THREE.ShaderMaterial({
+            vertexShader: earthVertexShader,
+            fragmentShader: earthFragmentShader,
+            uniforms: {
+                uDayMap: { value: earthTextures.satellite },
+                uNightMap: { value: earthTextures.night },
+                uSpecularMap: { value: specularMap },
+                uSunPosition: { value: new THREE.Vector3(50, 0, 30) },
+                uCameraPos: { value: camera.position },
+                uNightLightsIntensity: { value: 1.0 }
+            }
+        });
+
+        const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
+        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+        earthGroup.add(earthMesh);
+
+        // Procedural Cloud Layer (Parallax offset)
+        const cloudsGeo = new THREE.SphereGeometry(earthRadius + 0.14, 64, 64);
+        const cloudsMat = new THREE.MeshStandardMaterial({
+            map: createCloudsTexture(),
+            transparent: true,
+            opacity: 0.85,
+            blending: THREE.AdditiveBlending
+        });
+        const cloudsMesh = new THREE.Mesh(cloudsGeo, cloudsMat);
+        earthGroup.add(cloudsMesh);
+
+        // Rayleigh Scattering Atmospheric Glow (Custom Inversion Shader)
+        const atmosVertexShader = `
+            varying vec3 vNormal;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const atmosFragmentShader = `
+            varying vec3 vNormal;
+            uniform vec3 glowColor;
+            uniform float intensity;
+            void main() {
+                float fresnel = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.8);
+                gl_FragColor = vec4(glowColor, fresnel * intensity);
+            }
+        `;
+
+        const atmosMat = new THREE.ShaderMaterial({
+            vertexShader: atmosVertexShader,
+            fragmentShader: atmosFragmentShader,
+            uniforms: {
+                glowColor: { value: new THREE.Color(0x00f2fe) },
+                intensity: { value: 0.8 }
+            },
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+            transparent: true
+        });
+
+        const atmosMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(earthRadius + 1.25, 64, 64),
+            atmosMat
+        );
+        scene.add(atmosMesh);
+
+        // ══════════════════════════════════════════════════════════
+        // PULSATING GEOGRAPHIC DATA NODES
+        // ══════════════════════════════════════════════════════════
+
+        const geoNodes = [
+            {
+                name: "Tokyo Telemetry Hub",
+                lat: 35.6762,
+                lon: 139.6503,
+                coordStr: "35.6762° N, 139.6503° E",
+                desc: "High-density metropolitan core. Real-time seismic monitoring station and sub-orbital communications gateway."
+            },
+            {
+                name: "London Prime Meridian",
+                lat: 51.5074,
+                lon: -0.1278,
+                coordStr: "51.5074° N, 0.1278° W",
+                desc: "Universal Time reference origin. Atmospheric telemetry node monitoring North Atlantic jet stream patterns."
+            },
+            {
+                name: "San Francisco Quantum Array",
+                lat: 37.7749,
+                lon: -122.4194,
+                coordStr: "37.7749° N, 122.4194° W",
+                desc: "Silicon Valley deep-space uplink node. Orbital telemetry sync and satellite vector triangulation center."
+            },
+            {
+                name: "Singapore Equatorial Port",
+                lat: 1.3521,
+                lon: 103.8198,
+                coordStr: "1.3521° N, 103.8198° E",
+                desc: "Maritime logistics telemetry cluster and equatorial atmospheric pressure calibration station."
+            },
+            {
+                name: "Cairo Geodetic Observatory",
+                lat: 30.0444,
+                lon: 31.2357,
+                coordStr: "30.0444° N, 31.2357° E",
+                desc: "North African solar irradiance monitoring station and desert surface thermal gradient lab."
+            },
+            {
+                name: "Sydney Oceanic Node",
+                lat: -33.8688,
+                lon: 151.2093,
+                coordStr: "33.8688° S, 151.2093° E",
+                desc: "Southern Pacific deep-sea sensor grid monitoring thermohaline circulation and Antarctic drift."
+            }
+        ];
+
+        function latLongToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            return new THREE.Vector3(
+                -(radius * Math.sin(phi) * Math.cos(theta)),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+
+        const nodeGroup = new THREE.Group();
+        earthMesh.add(nodeGroup);
+        const nodeClickables = [];
+
+        geoNodes.forEach(node => {
+            const pos = latLongToVector3(node.lat, node.lon, earthRadius + 0.12);
+
+            // Inner glowing node core
+            const pinGeo = new THREE.SphereGeometry(0.24, 16, 16);
+            const pinMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
+            const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+            pinMesh.position.copy(pos);
+            pinMesh.userData = node;
+
+            // Outer pulsing ring
+            const ringGeo = new THREE.RingGeometry(0.35, 0.52, 24);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x00f2fe,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.position.copy(pos);
+            ringMesh.lookAt(0, 0, 0);
+
+            nodeGroup.add(pinMesh);
+            nodeGroup.add(ringMesh);
+            nodeClickables.push(pinMesh);
+        });
+
+        // ══════════════════════════════════════════════════════════
+        // INTERACTIVE UI EVENT BINDINGS
+        // ══════════════════════════════════════════════════════════
+
+        // 1. Layer Switching (Right Floating Panel)
+        const layerBtns = document.querySelectorAll('.layer-btn');
+        layerBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                layerBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const selectedLayer = btn.dataset.layer;
+                if (earthTextures[selectedLayer]) {
+                    earthMat.uniforms.uDayMap.value = earthTextures[selectedLayer];
+                    if (selectedLayer === 'night') {
+                        earthMat.uniforms.uNightLightsIntensity.value = 2.5;
+                    } else if (selectedLayer === 'thermal' || selectedLayer === 'topo') {
+                        earthMat.uniforms.uNightLightsIntensity.value = 0.25;
+                    } else {
+                        earthMat.uniforms.uNightLightsIntensity.value = 1.0;
+                    }
+                }
+            });
+        });
+
+        // 2. Sliders (Atmosphere & Cloud Density)
+        const glowSlider = document.getElementById('glow-slider');
+        const glowVal = document.getElementById('glow-val');
+        glowSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            glowVal.textContent = val + '%';
+            atmosMat.uniforms.intensity.value = (val / 100);
+        });
+
+        const cloudsSlider = document.getElementById('clouds-slider');
+        const cloudsVal = document.getElementById('clouds-val');
+        cloudsSlider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            cloudsVal.textContent = val + '%';
+            cloudsMat.opacity = (val / 100) * 0.9;
+        });
+
+        // 3. Metrics Collapse Toggle
+        const metricsCollapse = document.getElementById('metrics-collapse');
+        const metricsBody = document.getElementById('metrics-body');
+        let metricsCollapsed = false;
+        metricsCollapse.addEventListener('click', () => {
+            metricsCollapsed = !metricsCollapsed;
+            if (metricsCollapsed) {
+                metricsBody.style.maxHeight = '0px';
+                metricsBody.style.opacity = '0';
+                metricsCollapse.textContent = '▼';
+            } else {
+                metricsBody.style.maxHeight = '600px';
+                metricsBody.style.opacity = '1';
+                metricsCollapse.textContent = '▲';
+            }
+        });
+
+        // 4. 24-Hour Timeline Scrubber & Live Lighting Simulation
+        const scrubber = document.getElementById('time-scrubber');
+        const hudTime = document.getElementById('hud-time');
+        const hudPhase = document.getElementById('hud-phase');
+        const btnPlay = document.getElementById('btn-play-time');
+        const btnSpeed = document.getElementById('btn-speed-time');
+        const btnLiveSync = document.getElementById('btn-live-sync');
+
+        let isPlaying = false;
+        let isLiveSync = true;
+        let simSpeed = 1; // 1x, 5x, 15x
+
+        function getLiveSubsolarMinutes() {
+            const now = new Date();
+            return now.getUTCHours() * 60 + now.getUTCMinutes() + now.getUTCSeconds() / 60;
+        }
+
+        function updateSunAngleFromMinutes(minutes) {
+            // 1440 minutes in 24 hours
+            const angle = (minutes / 1440) * Math.PI * 2;
+            const sunDistance = 85;
+            dirLight.position.x = Math.sin(angle) * sunDistance;
+            dirLight.position.z = Math.cos(angle) * sunDistance;
+            dirLight.position.y = Math.sin(angle * 0.5) * 8; // subtle seasonal declination
+
+            // Update physical sun disk position & corona
+            sunGroup.position.copy(dirLight.position);
+            sunGroup.lookAt(0, 0, 0);
+
+            // Update Earth shader uniforms
+            earthMat.uniforms.uSunPosition.value.copy(dirLight.position);
+
+            // Update Time Label
+            const h = Math.floor(minutes / 60);
+            const m = Math.floor(minutes % 60);
+            const hh = h.toString().padStart(2, '0');
+            const mm = m.toString().padStart(2, '0');
+            hudTime.textContent = `${hh}:${mm} UTC`;
+
+            // Phase indicator
+            if (h >= 5 && h < 8) {
+                hudPhase.innerHTML = '🌅 DAWN';
+                hudPhase.style.color = '#f97316';
+            } else if (h >= 8 && h < 16) {
+                hudPhase.innerHTML = '☀️ SOLAR NOON';
+                hudPhase.style.color = '#fbbf24';
+            } else if (h >= 16 && h < 19) {
+                hudPhase.innerHTML = '🌇 DUSK';
+                hudPhase.style.color = '#f43f5e';
+            } else {
+                hudPhase.innerHTML = '🌙 NIGHT';
+                hudPhase.style.color = '#38bdf8';
+            }
+        }
+
+        scrubber.addEventListener('input', (e) => {
+            isLiveSync = false;
+            if (btnLiveSync) {
+                btnLiveSync.classList.remove('active');
+                btnLiveSync.style.background = 'rgba(255, 255, 255, 0.05)';
+            }
+            updateSunAngleFromMinutes(parseInt(e.target.value));
+        });
+
+        if (btnLiveSync) {
+            btnLiveSync.addEventListener('click', () => {
+                isLiveSync = !isLiveSync;
+                if (isLiveSync) {
+                    btnLiveSync.classList.add('active');
+                    btnLiveSync.style.background = 'rgba(0, 242, 254, 0.2)';
+                    isPlaying = false;
+                    btnPlay.textContent = '▶';
+                    const liveMin = getLiveSubsolarMinutes();
+                    scrubber.value = Math.floor(liveMin);
+                    updateSunAngleFromMinutes(liveMin);
+                } else {
+                    btnLiveSync.classList.remove('active');
+                    btnLiveSync.style.background = 'rgba(255, 255, 255, 0.05)';
+                }
+            });
+        }
+
+        btnPlay.addEventListener('click', () => {
+            isLiveSync = false;
+            if (btnLiveSync) {
+                btnLiveSync.classList.remove('active');
+                btnLiveSync.style.background = 'rgba(255, 255, 255, 0.05)';
+            }
+            isPlaying = !isPlaying;
+            btnPlay.textContent = isPlaying ? '⏸' : '▶';
+        });
+
+        btnSpeed.addEventListener('click', () => {
+            if (simSpeed === 1) simSpeed = 5;
+            else if (simSpeed === 5) simSpeed = 15;
+            else simSpeed = 1;
+            btnSpeed.textContent = `${simSpeed}x SPEED`;
+        });
+
+        // 5. Node Clicking & Raycasting
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const nodePopup = document.getElementById('node-popup');
+        const nodeTitle = document.getElementById('node-title');
+        const nodeCoord = document.getElementById('node-coord');
+        const nodeDesc = document.getElementById('node-desc');
+        const nodeClose = document.getElementById('node-close');
+
+        nodeClose.addEventListener('click', () => {
+            nodePopup.classList.remove('active');
+        });
+
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.interactive')) return;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(nodeClickables);
+
+            if (intersects.length > 0) {
+                const data = intersects[0].object.userData;
+                nodeTitle.textContent = data.name;
+                nodeCoord.textContent = data.coordStr;
+                nodeDesc.textContent = data.desc;
+
+                nodePopup.style.left = `${e.clientX}px`;
+                nodePopup.style.top = `${e.clientY}px`;
+                nodePopup.classList.add('active');
+
+                // Update Header Coordinates
+                document.getElementById('hud-lat').textContent = `${data.lat.toFixed(4)}°`;
+                document.getElementById('hud-long').textContent = `${data.lon.toFixed(4)}°`;
+            }
+        });
+
+        // Recenter Button
+        document.getElementById('btn-recenter').addEventListener('click', () => {
+            controls.reset();
+            camera.position.set(0, 0, 32);
+        });
+
+        // Fullscreen Toggle
+        document.getElementById('btn-fullscreen').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        });
+
+        // ══════════════════════════════════════════════════════════
+        // MAIN ANIMATION LOOP (60 FPS)
+        // ══════════════════════════════════════════════════════════
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Continuous Earth self-rotation
+            earthMesh.rotation.y += delta * 0.04;
+            cloudsMesh.rotation.y += delta * 0.052; // Cloud parallax differential
+
+            // Milky Way slow background celestial drift
+            milkyWayMesh.rotation.y += delta * 0.0015;
+
+            // Sun corona pulsation in deep space
+            const coronaPulse = 1.0 + Math.sin(clock.getElapsedTime() * 2.5) * 0.035;
+            sunCorona.scale.set(coronaPulse, coronaPulse, coronaPulse);
+
+            // Update camera position uniform for specular reflection
+            earthMat.uniforms.uCameraPos.value.copy(camera.position);
+
+            // Real-time Live Sun Tracking or Scrubber Auto-Play
+            if (isLiveSync) {
+                const liveMin = getLiveSubsolarMinutes();
+                scrubber.value = Math.floor(liveMin);
+                updateSunAngleFromMinutes(liveMin);
+            } else if (isPlaying) {
+                let cur = parseInt(scrubber.value);
+                cur = (cur + delta * 25 * simSpeed) % 1440;
+                scrubber.value = cur;
+                updateSunAngleFromMinutes(cur);
+            }
+
+            // Live Velocity Fluctuation in HUD
+            const velDisp = document.getElementById('disp-velocity');
+            if (velDisp && Math.random() > 0.9) {
+                velDisp.innerHTML = `${(27610 + Math.random() * 5).toFixed(0)}<small>KM/H</small>`;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize sun position to current live real-time UTC angle
+        updateSunAngleFromMinutes(getLiveSubsolarMinutes());
+        animate();
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="JARVIS - Just A Rather Very Intelligent System. Kali Linux Powered AI Assistant.">
+    <title>J.A.R.V.I.S. — Kali Ops Terminal</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script>
+        (function() {
+            var EXPECTED_VER = '5.0';
+            var urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('v') !== EXPECTED_VER) {
+                window.location.replace(window.location.pathname + '?v=' + EXPECTED_VER + '&t=' + Date.now());
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>document.write('<link rel="stylesheet" href="style.css?cb=' + Date.now() + '">');</script>
+</head>
+<body class="theme-kali">
+    <!-- Animated Background -->
+    <canvas id="matrix-canvas" class="matrix-canvas"></canvas>
+    <div class="kali-grid-bg"></div>
+    <div class="scan-line"></div>
+    <div id="particles"></div>
+
+    <!-- Main Container -->
+    <div class="jarvis-container">
+
+        <!-- ══════════ HEADER ══════════ -->
+        <header class="jarvis-header" id="jarvis-header">
+            <div class="header-left">
+                <!-- Kali Dragon Logo -->
+                <div class="kali-logo-wrap" id="arc-reactor" title="JARVIS Core">
+                    <div class="kali-dragon">🐉</div>
+                    <div class="kali-rings">
+                        <div class="kali-ring r1"></div>
+                        <div class="kali-ring r2"></div>
+                    </div>
+                </div>
+                <div class="header-title">
+                    <div class="kali-badge">
+                        <span class="badge-dot"></span>
+                        <span>kali@jarvis:~# root access granted</span>
+                    </div>
+                    <h1>J.A.R.V.I.S.</h1>
+                    <p class="subtitle"><span class="terminal-prefix">$</span> Kali Linux AI Ops Terminal v5.0</p>
+                </div>
+            </div>
+
+            <!-- Network Info Strip -->
+            <div class="tactical-ticker" id="tactical-ticker">
+                <span class="ticker-tag">[eth0: 127.0.0.1]</span>
+                <span class="ticker-tag">[OS: Kali Rolling]</span>
+                <span class="ticker-tag">[KERNEL: 6.8.0-kali]</span>
+                <span class="ticker-tag alert">[ROOT: ACTIVE]</span>
+            </div>
+
+            <!-- Voice Mode Switcher -->
+            <div class="header-modes" id="header-modes">
+                <span class="modes-tag">MODE:</span>
+                <div class="header-mode-pills">
+                    <button class="h-mode-btn active" id="h-mode-python" title="Python Microphone Engine">
+                        <span class="btn-icon">🎙️</span>
+                        <span class="btn-name">Python</span>
+                    </button>
+                    <button class="h-mode-btn" id="h-mode-browser" title="Browser Web Speech">
+                        <span class="btn-icon">🌐</span>
+                        <span class="btn-name">Browser</span>
+                    </button>
+                    <button class="h-mode-btn" id="h-mode-text" title="Text Only Mode">
+                        <span class="btn-icon">⌨️</span>
+                        <span class="btn-name">Text</span>
+                    </button>
+                    <button class="h-mode-btn" id="h-mode-earth" title="Planetary Observation & 3D Earth Orbital Deck" style="border-color: var(--jarvis-cyan);">
+                        <span class="btn-icon">🌍</span>
+                        <span class="btn-name">Orbital HUD</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="voice-status" id="voice-status">
+                    <div class="voice-orb" id="voice-orb">
+                        <div class="orb-ring orb-ring-1"></div>
+                        <div class="orb-ring orb-ring-2"></div>
+                        <div class="orb-core"></div>
+                    </div>
+                    <span class="voice-label" id="voice-label">STANDBY</span>
+                </div>
+                <div class="status-indicator" id="status-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="status-text">ONLINE</span>
+                </div>
+                <div class="system-clock" id="system-clock"></div>
+            </div>
+        </header>
+
+        <!-- ══════════ SEARCH ENGINE BAR ══════════ -->
+        <div class="search-engine-bar" id="search-engine-bar">
+            <div class="search-bar-inner">
+                <span class="search-label">🔍 OSINT:</span>
+                <div class="search-engine-select-wrap">
+                    <select id="search-engine-select" class="search-engine-select">
+                        <option value="https://www.google.com/search?q=">Google</option>
+                        <option value="https://duckduckgo.com/?q=">DuckDuckGo</option>
+                        <option value="https://www.bing.com/search?q=">Bing</option>
+                        <option value="https://search.yahoo.com/search?p=">Yahoo</option>
+                        <option value="https://www.youtube.com/results?search_query=">YouTube</option>
+                        <option value="https://github.com/search?q=">GitHub</option>
+                        <option value="https://stackoverflow.com/search?q=">StackOverflow</option>
+                        <option value="https://www.reddit.com/search/?q=">Reddit</option>
+                    </select>
+                </div>
+                <input type="text" id="search-input" class="search-input" placeholder="Search the web... (Enter to open)" autocomplete="off" spellcheck="false">
+                <button id="search-btn" class="search-submit-btn" title="Search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+                <div class="search-quick-links">
+                    <button class="sq-link" data-url="https://google.com" title="Google">G</button>
+                    <button class="sq-link" data-url="https://youtube.com" title="YouTube">▶</button>
+                    <button class="sq-link" data-url="https://github.com" title="GitHub">⌥</button>
+                    <button class="sq-link" data-url="https://duckduckgo.com" title="DuckDuckGo">🦆</button>
+                    <button class="sq-link" data-url="https://kali.org" title="Kali Linux">🐉</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════ VOICE VISUALIZER ══════════ -->
+        <div class="voice-visualizer" id="voice-visualizer">
+            <button class="viz-mic-btn active" id="viz-mic-btn" title="Click to speak">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                <span id="viz-mic-label">CLICK TO SPEAK</span>
+            </button>
+            <div class="viz-bars" id="viz-bars"></div>
+            <div class="viz-label" id="viz-label">🎙️ Microphone Active — Say "JARVIS" or click to speak</div>
+        </div>
+
+        <!-- ══════════ STATS BAR ══════════ -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">CPU</span>
+                <div class="stat-bar-track"><div class="stat-bar-fill" id="cpu-bar" style="width:23%"></div></div>
+                <span class="stat-value" id="cpu-val">23%</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">MEM</span>
+                <div class="stat-bar-track"><div class="stat-bar-fill" id="mem-bar" style="width:41%"></div></div>
+                <span class="stat-value" id="mem-val">41%</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">NET</span>
+                <div class="stat-bar-track"><div class="stat-bar-fill" id="net-bar" style="width:67%"></div></div>
+                <span class="stat-value" id="net-val">67%</span>
+            </div>
+            <div class="stat-item" id="stat-voice-mode" style="cursor:pointer" title="Click to switch voice mode">
+                <span class="stat-label">VOICE</span>
+                <span class="stat-value stat-value-text" id="voice-mode-val">PYTHON</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">UPTIME</span>
+                <span class="stat-value stat-value-text" id="uptime-val">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- ══════════ MAIN CONTENT ══════════ -->
+        <main class="main-content">
+            <!-- Chat Area -->
+            <div class="chat-area" id="chat-area">
+                <div class="chat-messages" id="chat-messages"></div>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+
+                <!-- Voice Protocols -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                        VOICE_PROTOCOLS
+                    </h3>
+                    <div class="mode-pills">
+                        <button class="mode-pill active" id="pill-mode-python" data-mode="python">⚡ Python</button>
+                        <button class="mode-pill" id="pill-mode-browser" data-mode="browser">🌐 Browser</button>
+                        <button class="mode-pill" id="pill-mode-text" data-mode="text">⌨️ Text</button>
+                    </div>
+                    <div class="voice-controls">
+                        <button class="voice-btn active" id="btn-toggle-voice">
+                            <svg id="mic-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            <span id="mic-btn-label">Voice: Python Active</span>
+                        </button>
+                        <button class="voice-btn voice-btn-secondary" id="btn-stop-speak">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            <span>Stop Speaking</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Memory Vault -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                        DATA_VAULT
+                    </h3>
+                    <div class="memory-list" id="memory-list">
+                        <p class="memory-empty">$ No records in memory bank.</p>
+                    </div>
+                </div>
+
+                <!-- Quick Commands -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                        QUICK_CMDS
+                    </h3>
+                    <div class="quick-commands">
+                        <button class="cmd-btn" data-cmd="system status" id="cmd-status">system status</button>
+                        <button class="cmd-btn" data-cmd="recall memories" id="cmd-recall">recall memories</button>
+                        <button class="cmd-btn" data-cmd="what can you open" id="cmd-apps">list apps</button>
+                        <button class="cmd-btn" data-cmd="help" id="cmd-help">help --all</button>
+                        <button class="cmd-btn" data-cmd="open calculator" id="cmd-calc">open calculator</button>
+                        <button class="cmd-btn" data-cmd="open chrome" id="cmd-browser">open chrome</button>
+                        <button class="cmd-btn" data-cmd="open earth" id="cmd-earth" style="color: var(--jarvis-cyan); font-weight: 600;">🌍 orbital deck</button>
+                        <button class="cmd-btn" data-cmd="clear chat" id="cmd-clear">clear && reset</button>
+                    </div>
+                </div>
+
+                <!-- Neural Core (Gemini) -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        NEURAL_CORE
+                    </h3>
+                    <div class="gemini-config">
+                        <input type="password" id="gemini-key-input" placeholder="Gemini or OpenRouter API key..." class="gemini-input">
+                        <button class="cmd-btn gemini-connect-btn" id="btn-set-gemini">⚡ Connect AI Model</button>
+                        <p class="gemini-status" id="gemini-status">$ Local kernel active</p>
+                    </div>
+                </div>
+
+                <!-- Themes -->
+                <div class="sidebar-section theme-section">
+                    <h3 class="sidebar-title">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10"/></svg>
+                        THEMES
+                    </h3>
+                    <div class="theme-pills">
+                        <button class="theme-btn" data-theme="kali" id="btn-theme-kali">🐉 Kali</button>
+                        <button class="theme-btn" data-theme="matrix" id="btn-theme-matrix">🟢 Matrix</button>
+                        <button class="theme-btn" data-theme="cyber" id="btn-theme-cyber">🔵 Cyber</button>
+                        <button class="theme-btn" data-theme="red" id="btn-theme-red">🔴 Breach</button>
+                    </div>
+                    <div class="rain-toggle-row">
+                        <span class="rain-label">$ Digital Rain:</span>
+                        <button class="rain-toggle-btn active" id="btn-toggle-rain">ACTIVE</button>
+                    </div>
+                </div>
+
+            </aside>
+        </main>
+
+        <!-- ══════════ INPUT AREA ══════════ -->
+        <div class="input-area" id="input-area">
+            <div class="input-wrapper">
+                <div class="input-glow"></div>
+                <div class="terminal-prompt-prefix" id="terminal-prompt-prefix">root@jarvis:~#</div>
+                <textarea id="user-input" placeholder="Type a command or ask JARVIS anything..." rows="1" autofocus></textarea>
+                <button class="mic-action-btn active" id="input-mic-btn" title="Click to Speak">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
+                <button class="send-btn" id="send-btn" title="Execute">
+                    <span class="btn-exec-text">RUN</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+            </div>
+            <div class="input-hint">
+                <span class="hint-tag">[ENTER]</span> Execute &nbsp;·&nbsp;
+                <span class="hint-tag">[SHIFT+ENTER]</span> New Line &nbsp;·&nbsp;
+                <span class="hint-tag">Say "JARVIS &lt;command&gt;"</span> Voice Control
+            </div>
+        </div>
+    </div>
+
+    <!-- Boot Overlay -->
+    <div class="boot-overlay" id="boot-overlay">
+        <div class="boot-content">
+            <div class="boot-reactor">
+                <div class="kali-dragon boot-dragon">🐉</div>
+                <div class="arc-ring arc-ring-1"></div>
+                <div class="arc-ring arc-ring-2"></div>
+                <div class="arc-ring arc-ring-3"></div>
+            </div>
+            <div class="boot-text" id="boot-text"></div>
+            <div class="boot-progress"><div class="boot-progress-fill" id="boot-progress-fill"></div></div>
+            <div class="boot-hint">[ CLICK ANYWHERE TO BYPASS BOOT ]</div>
+        </div>
+    </div>
+
+    <!-- ══════════ PLANETARY ORBITAL HUD OVERLAY ══════════ -->
+    <div class="planetary-overlay" id="planetary-overlay" style="display:none;">
+        <div class="planetary-iframe-container">
+            <div class="planetary-top-bar">
+                <div class="planetary-bar-left">
+                    <span class="planetary-dot"></span>
+                    <span class="planetary-title">J.A.R.V.I.S. // PLANETARY OBSERVATION DECK & 3D EARTH</span>
+                </div>
+                <div class="planetary-bar-actions">
+                    <button class="planetary-btn" id="planetary-popout" title="Open in New Tab">⤢ Full Window</button>
+                    <button class="planetary-btn planetary-btn-close" id="planetary-close" title="Close Orbital Deck">✕ Close [ESC]</button>
+                </div>
+            </div>
+            <iframe id="planetary-frame" src="" class="planetary-iframe" allow="fullscreen"></iframe>
+        </div>
+    </div>
+
+    <script>document.write('<scr'+'ipt src="script.js?cb=' + Date.now() + '"><\/scr'+'ipt>');</script>
+</body>
+</html>

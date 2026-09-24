@@ -1,0 +1,20 @@
+{
+  "name": "jarvis-2.0",
+  "version": "5.0.0",
+  "description": "J.A.R.V.I.S. — Kali Linux Powered AI Voice Assistant & Operations Terminal",
+  "main": "index.html",
+  "scripts": {
+    "start": "python jarvis_desktop.py",
+    "build": "echo 'Build successful for Vercel'"
+  },
+  "keywords": [
+    "jarvis",
+    "ai-assistant",
+    "gemini",
+    "voice-assistant",
+    "threejs",
+    "cyber-ops"
+  ],
+  "author": "Darshan H R",
+  "license": "MIT"
+}

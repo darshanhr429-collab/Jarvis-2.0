@@ -1,0 +1,10 @@
+{
+    "gemini_api_key": "",
+    "voice_enabled": true,
+    "tts_rate": 1.0,
+    "tts_pitch": 0.95,
+    "wake_word": "jarvis",
+    "server_port": 8742,
+    "debug": false,
+    "model_name": "gemini-3.6-flash"
+}

@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aetheria - An Interactive Anti-Gravity Earth Globe & Heliocentric Solar Observation Experience">
+    <title>Aetheria — Anti-Gravity Heliocentric Observatory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-space: #030712;
+            --accent-cyan: #38bdf8;
+            --accent-purple: #a855f7;
+            --accent-gold: #f59e0b;
+            --hud-bg: rgba(15, 23, 42, 0.65);
+            --hud-border: rgba(56, 189, 248, 0.25);
+            --hud-glow: rgba(56, 189, 248, 0.15);
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-space);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: block;
+        }
+
+        /* ════════════ HUD LAYOUT ════════════ */
+        .hud-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1.5rem;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* Top Header */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--hud-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--hud-border);
+            border-radius: 12px;
+            padding: 0.85rem 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), 0 0 20px var(--hud-glow);
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #38bdf8, #1e1b4b);
+            box-shadow: 0 0 15px var(--accent-cyan);
+            animation: pulse-glow 3s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 10px var(--accent-cyan); }
+            to { box-shadow: 0 0 25px var(--accent-cyan), 0 0 40px rgba(56, 189, 248, 0.4); }
+        }
+
+        .brand-title h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #ffffff 30%, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            letter-spacing: 0.05em;
+        }
+
+        .telemetry-strip {
+            display: flex;
+            gap: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .telemetry-item span {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .hud-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--hud-border);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hud-btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .hud-btn.active {
+            background: var(--accent-cyan);
+            color: #030712;
+            font-weight: 600;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px var(--accent-cyan);
+        }
+
+        /* Floating Info Card (Beacons) */
+        .info-card {
+            position: absolute;
+            top: 5.5rem;
+            right: 1.5rem;
+            width: 340px;
+            background: var(--hud-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--hud-border);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px var(--hud-glow);
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto;
+        }
+
+        .info-card.visible {
+            transform: translateX(0);
+        }
+
+        .info-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-card-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .info-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0 0.3rem;
+            transition: color 0.2s;
+        }
+
+        .info-close:hover {
+            color: var(--accent-cyan);
+        }
+
+        .info-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--accent-purple);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+
+        .info-desc {
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: #cbd5e1;
+            margin-bottom: 1.25rem;
+        }
+
+        .info-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.85rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-stat-box {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-val {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-top: 0.2rem;
+        }
+
+        /* Bottom Controls Dock */
+        .hud-bottom-dock {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            background: var(--hud-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--hud-border);
+            border-radius: 16px;
+            padding: 0.85rem 1.75rem;
+            margin: 0 auto;
+            max-width: 900px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 25px var(--hud-glow);
+        }
+
+        .dock-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .dock-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .speed-slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .speed-slider {
+            -webkit-appearance: none;
+            width: 110px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .speed-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        .speed-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            min-width: 36px;
+        }
+
+        .dock-separator {
+            width: 1px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Navigation Hints */
+        .nav-hint {
+            position: absolute;
+            bottom: 6rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+            letter-spacing: 0.03em;
+            transition: opacity 0.5s;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .hud-header { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+            .telemetry-strip { display: none; }
+            .hud-bottom-dock { flex-wrap: wrap; justify-content: center; gap: 0.8rem; padding: 0.75rem; }
+            .dock-separator { display: none; }
+            .info-card { width: calc(100vw - 3rem); top: auto; bottom: 6.5rem; right: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Interactive HUD Overlay -->
+    <div class="hud-overlay">
+        
+        <!-- Header -->
+        <header class="hud-header interactive">
+            <div class="brand-title">
+                <div class="brand-logo"></div>
+                <div>
+                    <h1>Aetheria</h1>
+                </div>
+                <div class="brand-badge">ANTI-GRAVITY OBSERVATORY</div>
+            </div>
+
+            <div class="telemetry-strip">
+                <div class="telemetry-item">SOLAR FLUX: <span id="tele-solar">1,361 W/m²</span></div>
+                <div class="telemetry-item">ORBIT VELOCITY: <span id="tele-vel">29.78 km/s</span></div>
+                <div class="telemetry-item">GRAV FIELD: <span id="tele-grav">1.00 G (KEPLER)</span></div>
+            </div>
+
+            <div class="header-actions">
+                <button class="hud-btn" id="btn-camera" title="Toggle Focus Mode">
+                    <span>🔭 Focus Earth</span>
+                </button>
+                <button class="hud-btn" id="btn-audio" title="Toggle Cosmic Audio">
+                    <span>🔊 Audio Synth</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tooltip Hint -->
+        <div class="nav-hint" id="nav-hint">
+            Drag to Rotate • Scroll to Zoom • Right-Click to Pan
+        </div>
+
+        <!-- Floating Telemetry Card -->
+        <div class="info-card interactive" id="info-card">
+            <div class="info-card-header">
+                <div>
+                    <span class="info-tag" id="card-tag">RESEARCH BEACON</span>
+                    <h3 id="card-title">Bermuda Gravitational Sink</h3>
+                </div>
+                <button class="info-close" id="card-close">&times;</button>
+            </div>
+            <p class="info-desc" id="card-desc">
+                Subsurface magnetic density fluctuations causing localized gravitational damping. Primary telemetry station for anti-gravity spatial stabilization studies.
+            </p>
+            <div class="info-stats">
+                <div class="info-stat-box">
+                    <div class="stat-label">Coordinates</div>
+                    <div class="stat-val" id="card-coord">25.0° N, 71.0° W</div>
+                </div>
+                <div class="info-stat-box">
+                    <div class="stat-label">Flux Gradient</div>
+                    <div class="stat-val" id="card-flux">-0.142 mGal</div>
+                </div>
+                <div class="info-stat-box">
+                    <div class="stat-label">Altitude</div>
+                    <div class="stat-val" id="card-alt">Sea Level</div>
+                </div>
+                <div class="info-stat-box">
+                    <div class="stat-label">Stabilization</div>
+                    <div class="stat-val" id="card-stab">99.8% Nominal</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Controller Dock -->
+        <div class="hud-bottom-dock interactive">
+            <!-- Gravity Mode -->
+            <div class="dock-group">
+                <span class="dock-label">Gravity State:</span>
+                <button class="hud-btn active" id="btn-grav-kepler">Keplerian</button>
+                <button class="hud-btn" id="btn-grav-invert">Anti-Grav</button>
+                <button class="hud-btn" id="btn-grav-zero">Zero-G</button>
+            </div>
+
+            <div class="dock-separator"></div>
+
+            <!-- Orbit Speed -->
+            <div class="dock-group">
+                <span class="dock-label">Time Dilation:</span>
+                <div class="speed-slider-wrap">
+                    <input type="range" class="speed-slider" id="speed-slider" min="0" max="50" value="10">
+                    <span class="speed-val" id="speed-val">1.0x</span>
+                </div>
+            </div>
+
+            <div class="dock-separator"></div>
+
+            <!-- View Reset -->
+            <div class="dock-group">
+                <button class="hud-btn" id="btn-reset-cam">⟲ Reset View</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Three.js & Controls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // ══════════════════════════════════════════════════════════
+        // AETHERIA: THREE.JS ANTI-GRAVITY HELIOCENTRIC ENGINE
+        // ══════════════════════════════════════════════════════════
+
+        const canvas = document.getElementById('webgl-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030712, 0.0007);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 80, 180);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 600;
+        controls.minDistance = 8;
+
+        // ══════════════════════════════════════════════════════════
+        // PROCEDURAL HIGH-RESOLUTION TEXTURE GENERATORS
+        // (Guarantees zero external image dependencies & fast load)
+        // ══════════════════════════════════════════════════════════
+
+        function createSunTexture() {
+            const size = 1024;
+            const c = document.createElement('canvas');
+            c.width = size;
+            c.height = size;
+            const ctx = c.getContext('2d');
+
+            const grad = ctx.createRadialGradient(size/2, size/2, 50, size/2, size/2, size/2);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.2, '#fff7b2');
+            grad.addColorStop(0.5, '#f59e0b');
+            grad.addColorStop(0.85, '#d97706');
+            grad.addColorStop(1, '#9a3412');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+
+            // Add solar granulation noise
+            for (let i = 0; i < 4000; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const r = Math.random() * 8 + 2;
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.08})`;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(c);
+        }
+
+        function createEarthTexture() {
+            const width = 2048;
+            const height = 1024;
+            const c = document.createElement('canvas');
+            c.width = width;
+            c.height = height;
+            const ctx = c.getContext('2d');
+
+            // Deep ocean base
+            const oceanGrad = ctx.createLinearGradient(0, 0, 0, height);
+            oceanGrad.addColorStop(0, '#0c2d48');
+            oceanGrad.addColorStop(0.5, '#145da0');
+            oceanGrad.addColorStop(1, '#0c2d48');
+            ctx.fillStyle = oceanGrad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Continents layout (Procedural stylized landmasses)
+            ctx.fillStyle = '#2e7d32'; // Forest green
+
+            function drawContinent(cx, cy, r, points) {
+                ctx.beginPath();
+                for (let i = 0; i < points; i++) {
+                    const angle = (i / points) * Math.PI * 2;
+                    const dist = r * (0.65 + Math.sin(angle * 3.5) * 0.25 + Math.cos(angle * 2) * 0.15);
+                    const px = cx + Math.cos(angle) * dist;
+                    const py = cy + Math.sin(angle) * dist * 0.75;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // North America
+            ctx.fillStyle = '#386641';
+            drawContinent(width * 0.22, height * 0.32, 190, 16);
+            // South America
+            ctx.fillStyle = '#2d6a4f';
+            drawContinent(width * 0.30, height * 0.68, 160, 14);
+            // Eurasia
+            ctx.fillStyle = '#40916c';
+            drawContinent(width * 0.62, height * 0.30, 260, 20);
+            // Africa
+            ctx.fillStyle = '#d4a373';
+            drawContinent(width * 0.52, height * 0.55, 180, 16);
+            // Australia
+            ctx.fillStyle = '#bc6c25';
+            drawContinent(width * 0.82, height * 0.72, 110, 12);
+            // Antarctica & Greenland icecaps
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, width, height * 0.08); // Arctic
+            ctx.fillRect(0, height * 0.92, width, height * 0.08); // Antarctica
+
+            // Continental shading & coastal shelves
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            return new THREE.CanvasTexture(c);
+        }
+
+        function createCloudsTexture() {
+            const width = 1024;
+            const height = 512;
+            const c = document.createElement('canvas');
+            c.width = width;
+            c.height = height;
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            for (let i = 0; i < 200; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * (height * 0.75) + height * 0.12;
+                const rx = Math.random() * 60 + 20;
+                const ry = Math.random() * 20 + 8;
+                ctx.beginPath();
+                ctx.ellipse(x, y, rx, ry, Math.random() * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(c);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // CELESTIAL BODIES CONSTRUCTION
+        // ══════════════════════════════════════════════════════════
+
+        // 1. Central Sun
+        const sunRadius = 14;
+        const sunGeo = new THREE.SphereGeometry(sunRadius, 64, 64);
+        const sunMat = new THREE.MeshBasicMaterial({
+            map: createSunTexture(),
+        });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        scene.add(sun);
+
+        // Sun Corona / Glow (Layered mesh)
+        const coronaGeo = new THREE.SphereGeometry(sunRadius * 1.35, 32, 32);
+        const coronaMat = new THREE.MeshBasicMaterial({
+            color: 0xffa500,
+            transparent: true,
+            opacity: 0.25,
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide
+        });
+        const corona = new THREE.Mesh(coronaGeo, coronaMat);
+        sun.add(corona);
+
+        // Sunlight
+        const sunLight = new THREE.PointLight(0xffffff, 2.2, 1000, 0.5);
+        sunLight.position.set(0, 0, 0);
+        scene.add(sunLight);
+
+        const ambientLight = new THREE.AmbientLight(0x0f172a, 0.4);
+        scene.add(ambientLight);
+
+        // 2. Earth System Container
+        const earthRadius = 5.2;
+        const earthPivot = new THREE.Group();
+        scene.add(earthPivot);
+
+        const earthMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(earthRadius, 64, 64),
+            new THREE.MeshStandardMaterial({
+                map: createEarthTexture(),
+                roughness: 0.65,
+                metalness: 0.1
+            })
+        );
+        // Earth axial tilt (23.44 degrees)
+        earthMesh.rotation.z = 23.44 * (Math.PI / 180);
+
+        // Atmosphere / Clouds Layer
+        const cloudsMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(earthRadius + 0.08, 64, 64),
+            new THREE.MeshStandardMaterial({
+                map: createCloudsTexture(),
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            })
+        );
+        earthMesh.add(cloudsMesh);
+
+        // Atmosphere Outer Glow
+        const atmosMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(earthRadius + 0.5, 32, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.15,
+                blending: THREE.AdditiveBlending,
+                side: THREE.BackSide
+            })
+        );
+        earthMesh.add(atmosMesh);
+
+        earthPivot.add(earthMesh);
+
+        // 3. Orbital Path Ribbon
+        let orbitRadius = 95;
+        let targetOrbitRadius = 95;
+        const orbitPoints = [];
+        for (let i = 0; i <= 128; i++) {
+            const theta = (i / 128) * Math.PI * 2;
+            orbitPoints.push(new THREE.Vector3(Math.cos(theta) * orbitRadius, 0, Math.sin(theta) * orbitRadius));
+        }
+        const orbitLineGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+        const orbitLineMat = new THREE.LineBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.35,
+            blending: THREE.AdditiveBlending
+        });
+        const orbitLine = new THREE.Line(orbitLineGeo, orbitLineMat);
+        scene.add(orbitLine);
+
+        // 4. Background Starfield
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 3500;
+        const starPos = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i += 3) {
+            starPos[i] = (Math.random() - 0.5) * 1600;
+            starPos[i + 1] = (Math.random() - 0.5) * 1600;
+            starPos[i + 2] = (Math.random() - 0.5) * 1600;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 1.2,
+            transparent: true,
+            opacity: 0.75
+        });
+        const starfield = new THREE.Points(starGeo, starMat);
+        scene.add(starfield);
+
+        // ══════════════════════════════════════════════════════════
+        // INTERACTIVE TELEMETRY BEACONS (3D DATA NODES)
+        // ══════════════════════════════════════════════════════════
+
+        const beacons = [
+            {
+                id: 'bermuda',
+                title: 'Bermuda Gravitational Sink',
+                tag: 'MAGNETIC SINGULARITY',
+                lat: 25.0,
+                lon: -71.0,
+                desc: 'Subsurface density variance creating zero-G wave anomalies. Serves as our primary terrestrial calibration node for deep-space inertial compensators.',
+                coord: '25.0° N, 71.0° W',
+                flux: '-0.142 mGal',
+                alt: 'Sea Level',
+                stab: '99.8% Nominal'
+            },
+            {
+                id: 'atacama',
+                title: 'Atacama Solar Array & Array Node',
+                tag: 'DEEP SPACE TELEMETRY',
+                lat: -23.8,
+                lon: -67.7,
+                desc: 'Ultra-high altitude optical & microwave observatory. Directly monitors solar wind flux and coronal mass ejection trajectories.',
+                coord: '23.8° S, 67.7° W',
+                flux: '+0.089 mGal',
+                alt: '5,050 m',
+                stab: '100% Locked'
+            },
+            {
+                id: 'svalbard',
+                title: 'Svalbard Cryo-Quantum Vault',
+                tag: 'EQUATORIAL ZERO-DRIFT',
+                lat: 78.2,
+                lon: 15.6,
+                desc: 'Sub-permafrost quantum core anchoring anti-gravity synchronization metrics against Earth polar precession wobble.',
+                coord: '78.2° N, 15.6° E',
+                flux: '+0.012 mGal',
+                alt: '130 m',
+                stab: '99.9% Nominal'
+            },
+            {
+                id: 'mariana',
+                title: 'Mariana Trench Core Hydro-Sensor',
+                tag: 'BATHYPELAGIC BASIN',
+                lat: 11.3,
+                lon: 142.2,
+                desc: 'Deepest planetary pressure well. Measures ultra-low frequency gravitational harmonic resonance emitted by the Earth mantle.',
+                coord: '11.3° N, 142.2° E',
+                flux: '-0.285 mGal',
+                alt: '-10,994 m',
+                stab: '98.4% Nominal'
+            }
+        ];
+
+        const beaconGroup = new THREE.Group();
+        earthMesh.add(beaconGroup);
+
+        const beaconMeshes = [];
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            return new THREE.Vector3(
+                -(radius * Math.sin(phi) * Math.cos(theta)),
+                radius * Math.cos(phi),
+                radius * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+
+        beacons.forEach(b => {
+            const pos = latLonToVector3(b.lat, b.lon, earthRadius + 0.15);
+
+            // Glowing Beacon Pin
+            const pinGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const pinMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                wireframe: true
+            });
+            const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+            pinMesh.position.copy(pos);
+            pinMesh.userData = b;
+
+            // Halo ring
+            const ringGeo = new THREE.RingGeometry(0.45, 0.65, 24);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.7
+            });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.position.copy(pos);
+            ringMesh.lookAt(0, 0, 0);
+
+            beaconGroup.add(pinMesh);
+            beaconGroup.add(ringMesh);
+            beaconMeshes.push(pinMesh);
+        });
+
+        // ══════════════════════════════════════════════════════════
+        // SIMULATION STATE & CONTROLS
+        // ══════════════════════════════════════════════════════════
+
+        let orbitAngle = 0;
+        let orbitSpeedMultiplier = 1.0;
+        let gravityMode = 'kepler'; // 'kepler', 'invert', 'zero'
+        let cameraFocusMode = 'overview'; // 'overview', 'earth'
+        const clock = new THREE.Clock();
+
+        // ══════════════════════════════════════════════════════════
+        // INTERACTIVE HUD & EVENT BINDINGS
+        // ══════════════════════════════════════════════════════════
+
+        const speedSlider = document.getElementById('speed-slider');
+        const speedVal = document.getElementById('speed-val');
+        const btnGravKepler = document.getElementById('btn-grav-kepler');
+        const btnGravInvert = document.getElementById('btn-grav-invert');
+        const btnGravZero = document.getElementById('btn-grav-zero');
+        const btnCamera = document.getElementById('btn-camera');
+        const btnResetCam = document.getElementById('btn-reset-cam');
+        const btnAudio = document.getElementById('btn-audio');
+        const infoCard = document.getElementById('info-card');
+        const cardClose = document.getElementById('card-close');
+        const navHint = document.getElementById('nav-hint');
+
+        // Speed Slider
+        speedSlider.addEventListener('input', (e) => {
+            orbitSpeedMultiplier = parseFloat(e.target.value) / 10;
+            speedVal.textContent = orbitSpeedMultiplier.toFixed(1) + 'x';
+            document.getElementById('tele-vel').textContent = (29.78 * orbitSpeedMultiplier).toFixed(2) + ' km/s';
+        });
+
+        // Gravity Buttons
+        function setGravityMode(mode) {
+            gravityMode = mode;
+            [btnGravKepler, btnGravInvert, btnGravZero].forEach(b => b.classList.remove('active'));
+            
+            const teleGrav = document.getElementById('tele-grav');
+            if (mode === 'kepler') {
+                btnGravKepler.classList.add('active');
+                targetOrbitRadius = 95;
+                teleGrav.textContent = '1.00 G (KEPLER)';
+            } else if (mode === 'invert') {
+                btnGravInvert.classList.add('active');
+                targetOrbitRadius = 150; // Expands outward
+                teleGrav.textContent = '-1.25 G (INVERTED)';
+            } else if (mode === 'zero') {
+                btnGravZero.classList.add('active');
+                teleGrav.textContent = '0.00 G (ZERO-FLOAT)';
+            }
+            updateOrbitLine();
+        }
+
+        btnGravKepler.addEventListener('click', () => setGravityMode('kepler'));
+        btnGravInvert.addEventListener('click', () => setGravityMode('invert'));
+        btnGravZero.addEventListener('click', () => setGravityMode('zero'));
+
+        function updateOrbitLine() {
+            const pts = [];
+            for (let i = 0; i <= 128; i++) {
+                const theta = (i / 128) * Math.PI * 2;
+                pts.push(new THREE.Vector3(Math.cos(theta) * targetOrbitRadius, 0, Math.sin(theta) * targetOrbitRadius));
+            }
+            orbitLine.geometry.dispose();
+            orbitLine.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+        }
+
+        // Camera Focus Mode
+        btnCamera.addEventListener('click', () => {
+            if (cameraFocusMode === 'overview') {
+                cameraFocusMode = 'earth';
+                btnCamera.classList.add('active');
+                btnCamera.innerHTML = '<span>☀️ Focus Sun</span>';
+            } else {
+                cameraFocusMode = 'overview';
+                btnCamera.classList.remove('active');
+                btnCamera.innerHTML = '<span>🔭 Focus Earth</span>';
+                controls.target.set(0, 0, 0);
+            }
+        });
+
+        // Reset Camera
+        btnResetCam.addEventListener('click', () => {
+            cameraFocusMode = 'overview';
+            btnCamera.classList.remove('active');
+            btnCamera.innerHTML = '<span>🔭 Focus Earth</span>';
+            controls.target.set(0, 0, 0);
+            camera.position.set(0, 80, 180);
+            controls.update();
+        });
+
+        // Beacon Card Selection
+        function showBeaconCard(data) {
+            document.getElementById('card-tag').textContent = data.tag;
+            document.getElementById('card-title').textContent = data.title;
+            document.getElementById('card-desc').textContent = data.desc;
+            document.getElementById('card-coord').textContent = data.coord;
+            document.getElementById('card-flux').textContent = data.flux;
+            document.getElementById('card-alt').textContent = data.alt;
+            document.getElementById('card-stab').textContent = data.stab;
+            infoCard.classList.add('visible');
+        }
+
+        cardClose.addEventListener('click', () => {
+            infoCard.classList.remove('visible');
+        });
+
+        // Raycasting for Beacon Clicks
+        window.addEventListener('pointerdown', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(beaconMeshes);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0].object.userData;
+                showBeaconCard(hit);
+                if (navHint) navHint.style.opacity = '0';
+            }
+        });
+
+        // ══════════════════════════════════════════════════════════
+        // PROCEDURAL ZERO-G AUDIO SYNTHESIZER (Web Audio API)
+        // (Zero external mp3 files required)
+        // ══════════════════════════════════════════════════════════
+
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let osc1, osc2, gainNode;
+
+        btnAudio.addEventListener('click', () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gainNode.connect(audioCtx.destination);
+
+                // Deep space resonance carrier
+                osc1 = audioCtx.createOscillator();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(55, audioCtx.currentTime); // A1 note
+                osc1.connect(gainNode);
+
+                // Ethereal overtone
+                osc2 = audioCtx.createOscillator();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(110.5, audioCtx.currentTime);
+                osc2.connect(gainNode);
+
+                osc1.start();
+                osc2.start();
+                isAudioPlaying = true;
+                btnAudio.classList.add('active');
+                btnAudio.innerHTML = '<span>🔊 Audio Playing</span>';
+            } else {
+                if (isAudioPlaying) {
+                    audioCtx.suspend();
+                    isAudioPlaying = false;
+                    btnAudio.classList.remove('active');
+                    btnAudio.innerHTML = '<span>🔇 Audio Muted</span>';
+                } else {
+                    audioCtx.resume();
+                    isAudioPlaying = true;
+                    btnAudio.classList.add('active');
+                    btnAudio.innerHTML = '<span>🔊 Audio Playing</span>';
+                }
+            }
+        });
+
+        // ══════════════════════════════════════════════════════════
+        // MAIN ANIMATION RENDER LOOP (60 FPS)
+        // ══════════════════════════════════════════════════════════
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Smooth orbit radius transitions
+            orbitRadius += (targetOrbitRadius - orbitRadius) * 0.05;
+
+            // Update orbit position
+            if (gravityMode !== 'zero') {
+                orbitAngle += delta * 0.25 * orbitSpeedMultiplier;
+                earthPivot.position.x = Math.cos(orbitAngle) * orbitRadius;
+                earthPivot.position.z = Math.sin(orbitAngle) * orbitRadius;
+            }
+
+            // Earth continuous self-rotation
+            earthMesh.rotation.y += delta * 0.5;
+            cloudsMesh.rotation.y += delta * 0.62; // Clouds drift slightly faster
+
+            // Sun continuous rotation & corona pulsation
+            sun.rotation.y += delta * 0.08;
+            const pulse = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.03;
+            corona.scale.set(pulse, pulse, pulse);
+
+            // Camera Tracking
+            if (cameraFocusMode === 'earth') {
+                const targetPos = earthPivot.position;
+                controls.target.lerp(targetPos, 0.08);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // ══════════════════════════════════════════════════════════
+        // WINDOW RESIZE HANDLER
+        // ══════════════════════════════════════════════════════════
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
